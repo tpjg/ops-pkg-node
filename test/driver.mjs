@@ -137,6 +137,8 @@ const ops = spawn('ops', opsArgs, { cwd: work, stdio: ['ignore', 'pipe', 'inheri
 const exited = new Promise((resolve) => ops.on('exit', (code, signal) => resolve({ code, signal })));
 const ready = new Promise((resolve) => {
   let buf = '';
+  // Decode as a stream: a multi-byte character can straddle two chunks.
+  ops.stdout.setEncoding('utf8');
   ops.stdout.on('data', (chunk) => {
     process.stdout.write(chunk);
     buf += chunk;
