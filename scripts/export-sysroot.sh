@@ -7,7 +7,7 @@ set_arch "${1:-}"
 
 image=debian@$DEBIAN_DIGEST
 docker pull -q --platform "$DOCKER_PLATFORM" "$image" >/dev/null
-got=$(docker image inspect --platform "$DOCKER_PLATFORM" --format '{{.Os}}/{{.Architecture}}' "$image")
+got=$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$image")
 [[ $got == "$DOCKER_PLATFORM" ]] || die "$image is $got, expected $DOCKER_PLATFORM"
 
 mkdir -p "$WORK/$ARCH"

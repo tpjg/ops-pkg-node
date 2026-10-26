@@ -188,10 +188,9 @@ The tests always run in the Linux test container (`test/Dockerfile`), also on ma
 
 | Where | x64 | arm64 |
 |---|---|---|
-| CI, `ubuntu-24.04` / `ubuntu-24.04-arm` | KVM | KVM if the runner exposes `/dev/kvm`, otherwise TCG |
+| CI, `ubuntu-24.04` / `ubuntu-24.04-arm` | KVM | TCG (the hosted arm64 runner has no `/dev/kvm`) |
 | macOS on Apple silicon (colima) | TCG | TCG |
 
-GitHub does not document whether its hosted arm64 runners expose `/dev/kvm`.
 `scripts/ci-enable-kvm.sh` prints which case applies, and the driver records the accelerator
 in `results.json`.
 
