@@ -1,0 +1,20 @@
+# Files copied from debian:trixie-slim (linux/amd64, pins.env DEBIAN_DIGEST_X64) into the package sysroot, at
+# the same path; symlinks are resolved inside the image. scripts/build-package.sh fails unless
+# this list contains the shared-library closure of bin/node and the closure of every ELF listed.
+
+# Loader, C/C++ runtime and libm: what bin/node links.
+/lib64/ld-linux-x86-64.so.2
+/lib/x86_64-linux-gnu/libc.so.6
+/lib/x86_64-linux-gnu/libgcc_s.so.1
+/lib/x86_64-linux-gnu/libm.so.6
+/lib/x86_64-linux-gnu/libstdc++.so.6
+
+# glibc's compatibility stubs. Since glibc 2.34 these are empty and their symbols live in
+# libc.so.6, but binaries built against an older glibc still list them as NEEDED: bin/node
+# links libdl and libpthread, and prebuilt native addons do the same (@node-rs/argon2's
+# linux-x64-gnu build links librt). All five ship so such an addon finds whichever it names.
+/lib/x86_64-linux-gnu/libanl.so.1
+/lib/x86_64-linux-gnu/libdl.so.2
+/lib/x86_64-linux-gnu/libpthread.so.0
+/lib/x86_64-linux-gnu/librt.so.1
+/lib/x86_64-linux-gnu/libutil.so.1

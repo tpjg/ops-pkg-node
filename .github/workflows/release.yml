@@ -1,0 +1,72 @@
+# Publishes the package as GitHub Release assets with sha256 files and build provenance
+# attestations. Runs when a change that affects the package lands on main, or by dispatch.
+# Each release is tagged v<node version>-r<n>; n counts releases of that Node version. A build
+# whose packages are byte-identical to the previous release of that version is not released.
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: [NODE_VERSION, pins.env, package/**, scripts/**, tools/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: package (${{ matrix.arch }})
+    strategy:
+      matrix:
+        include:
+          - { arch: x64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write      # OIDC token for the Sigstore signing certificate
+      attestations: write  # store the attestation in this repository
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: scripts/ci-enable-kvm.sh
+      - run: scripts/build.sh ${{ matrix.arch }}
+      - run: scripts/check-expected.sh ${{ matrix.arch }}
+      - run: scripts/test.sh ${{ matrix.arch }}
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.tar.gz
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: package-${{ matrix.arch }}
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write  # create the release and upload assets
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+      - name: Verify checksums
+        working-directory: dist
+        run: cat ./*.sha256 | sha256sum -c -
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/ci-publish-release.sh

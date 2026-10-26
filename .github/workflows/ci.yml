@@ -1,0 +1,50 @@
+# Builds and tests the package for both architectures on native runners. Runs on pull requests,
+# on main, and by dispatch (update-node.yml dispatches it for its own PRs; see there).
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: package (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { arch: x64, runner: ubuntu-24.04 }
+          - { arch: arm64, runner: ubuntu-24.04-arm }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Enable KVM if the runner has it
+        run: scripts/ci-enable-kvm.sh
+      - name: Build
+        run: scripts/build.sh ${{ matrix.arch }}
+      - name: Compare with package/expected.sha256
+        run: scripts/check-expected.sh ${{ matrix.arch }}
+      - name: Acceptance tests
+        run: scripts/test.sh ${{ matrix.arch }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: package-${{ matrix.arch }}
+          path: |
+            dist/
+            .work/${{ matrix.arch }}/test/results.json
+            .work/${{ matrix.arch }}/test/config.json
+          if-no-files-found: warn
+          retention-days: 14
