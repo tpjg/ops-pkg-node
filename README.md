@@ -176,7 +176,7 @@ on the verified Node build for the host's architecture.
 | `version-and-arch` | `process.version`, `process.arch`, and the glibc runtime version |
 | `typescript` | the entry point is a `.ts` file run with `process.features.typescript === 'strip'`, importing other `.ts` modules |
 | `intl` | full ICU: `nl-NL` resolves, and formats as `maandag 26 oktober 2026` |
-| `threadpool` | `crypto.pbkdf2` runs off the main thread (timers keep firing) and four jobs run in parallel on two vCPUs |
+| `threadpool` | `crypto.pbkdf2` runs on the libuv pool: timers keep firing on the main thread while four jobs run. The parallel speedup on two vCPUs is reported (`ratio`), not asserted, because it depends on how loaded the host is. |
 | `env` | variables from the ops config's `Env`, including a URL with spaces, `%`, `&`, `=` and non-ASCII, reach `process.env` intact |
 | `tls-extra-ca` | `tls.connect` and `https.get` to a host server signed by the CA in `NODE_EXTRA_CA_CERTS` succeed; a server signed by another CA is rejected with `UNABLE_TO_VERIFY_LEAF_SIGNATURE` |
 | `dns-getaddrinfo` | `dns.lookup` resolves through the packaged glibc (skipped when the host is offline) |
