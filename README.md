@@ -3,8 +3,8 @@
 An [ops](https://github.com/nanovms/ops) package of **Node.js 24 LTS** for the Nanos
 unikernel, for **x86_64** and **arm64** (AWS Graviton). It is built from the official
 nodejs.org binaries, with every input pinned and verified, and it is reproducible
-byte-for-byte. Releases are private GitHub Release assets; nothing goes to the public ops
-package hub.
+byte-for-byte. Releases are GitHub Release assets of this repository, with checksums and
+signed build provenance; nothing goes to the public ops package hub.
 
 The package is the base for API images that run Node directly on Nanos: Fastify 5 with
 WebSockets, postgres.js over TLS, the native addon `@node-rs/argon2`, and TypeScript run
@@ -51,9 +51,10 @@ The package deliberately contains no CA bundle, no npm and no shell:
 Packages on the public ops hub are referred to as `<namespace>/<name>:<version>`, for
 example `ops pkg load eyberg/node:20.5.0`. ops resolves that name through the hub's
 `manifest.json` and downloads the archive over unauthenticated HTTP. This package is not on
-the hub, and never will be. It is a release asset of this private repository, so a consumer
-fetches it with their own GitHub credentials, verifies it, and adds it to ops as a *local*
-package under a name they choose. The convention is `node_<version>`:
+the hub, and never will be: the hub's packages are built by their uploaders, outside these
+controls. A consumer downloads a release asset of this repository instead, verifies it, and
+adds it to ops as a *local* package under a name they choose. The convention is
+`node_<version>`:
 
 ```sh
 tag=v24.22.1-r1
@@ -106,11 +107,11 @@ addon builds:
 On shutdown (an ACPI power-button press, as EC2 sends), Nanos delivers SIGTERM to Node and
 powers off 30 s later at the latest. Running on EC2 is covered in [docs/aws.md](docs/aws.md).
 
-ops can also resolve hub-style names from a private package repository, through
+ops can also resolve hub-style names from your own package repository, through
 `OPS_PACKAGE_MANIFEST_URL` and `OPS_PACKAGE_BASE_URL`, and it checks each download against
-the manifest's sha256. It fetches from `<base>/<namespace>/<name>/<version>[/arm64].tar.gz`
-without credentials, though. A private GitHub repository can't serve that layout, so this
-repository does not publish one.
+the manifest's sha256. It expects archives at `<base>/<namespace>/<name>/<version>[/arm64].tar.gz`.
+GitHub Release download URLs (`/releases/download/<tag>/<asset>`) can't take that shape,
+so this repository does not publish one.
 
 ## Building
 
@@ -147,7 +148,7 @@ Every external input is pinned. Changing one is a reviewed edit to a file in thi
 | Sysroot libraries | `pins.env`: `debian:trixie-slim` per-architecture manifest digests; file list in `package/sysroot-<arch>.txt` | `export-sysroot.sh` checks the image's OS/arch; `build-package.sh` checks each ELF's machine type and that the shared-library closure of `bin/node` and of every listed file is in the list | Libraries come from a fixed environment of the *target* architecture, never from the build host. The list makes the package's contents explicit and reviewable. |
 | Build tools | `pins.env`: `debian:trixie-slim` index digest and `snapshot.debian.org` timestamp | apt's archive signatures | Tool versions (tar, gzip, readelf, gpgv) are fixed, so the archive bytes are too. |
 | ops CLI | `pins.env`: version and sha256 per host platform | `install-ops.sh` | Upstream publishes only md5s; the sha256 values were recorded when pinning, after checking those md5s. |
-| Nanos kernel | `pins.env`: version and sha256 per architecture | `install-ops.sh` | ops does not checksum kernel downloads, so the kernels come from these pins into a private `OPS_HOME` (`.work/ops-<os>-<machine>`); `~/.ops` is never used. |
+| Nanos kernel | `pins.env`: version and sha256 per architecture | `install-ops.sh` | ops does not checksum kernel downloads, so the kernels come from these pins into a separate `OPS_HOME` (`.work/ops-<os>-<machine>`); `~/.ops` is never used. |
 | Test environment | `pins.env`: `ubuntu:24.04` index digest and `snapshot.ubuntu.com` timestamp | apt's archive signatures | QEMU's version decides whether tests pass (see Testing), so the tests run on a fixed QEMU locally and in CI. |
 | GitHub Actions | full commit SHAs in `.github/workflows/` | — | Tags can be moved; commit SHAs cannot. |
 | Output | `package/expected.sha256` | `check-expected.sh` in CI | The archive is deterministic: sorted entries, fixed mtime (the Node binary's), uid/gid 0, normalized modes, `gzip -n`. The expected values come from a build on a different host (a developer machine, or the update-node runner), so CI's match shows the build is reproducible across hosts. |
