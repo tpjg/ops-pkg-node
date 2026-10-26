@@ -103,6 +103,6 @@ out=$DIST/$PKG_FILE
 ( cd "$pkg" && LC_ALL=C tar --sort=name --format=gnu --mtime="@$epoch" --owner=0 --group=0 --numeric-owner \
     --mode='u+rwX,go+rX,go-w' -cf - package.manifest node sysroot BUILDINFO.json LICENSE ) | gzip -9n > "$out"
 ( cd "$DIST" && sha256sum "$PKG_FILE" > "$PKG_FILE.sha256" )
-rm -rf "$rootfs"
+chmod -R u+w "$rootfs" && rm -rf "$rootfs"
 echo "built $out ($(du -h "$out" | cut -f1), unpacked $(du -sh "$pkg" | cut -f1)), glibc $glibc"
 cat "$DIST/$PKG_FILE.sha256"

@@ -57,11 +57,14 @@ build_image() {
   fi
 }
 
+# Containers run as the calling user, so files they write under the repo stay the user's.
+DOCKER_USER=(--user "$(id -u):$(id -g)" -e HOME=/tmp)
+
 # Runs a command in the tools container (tools/Dockerfile), with the repo mounted at /src.
 in_tools() {
   local tag=ops-pkg-node-tools:$DEBIAN_SNAPSHOT
   build_image "$tag" "$ROOT/tools" DEBIAN_INDEX_DIGEST="$DEBIAN_INDEX_DIGEST" DEBIAN_SNAPSHOT="$DEBIAN_SNAPSHOT"
-  docker run --rm -v "$ROOT:/src" -w /src "$tag" "$@"
+  docker run --rm "${DOCKER_USER[@]}" -v "$ROOT:/src" -w /src "$tag" "$@"
 }
 
 # Runs a command in the test container (test/Dockerfile), passing /dev/kvm through when usable.
@@ -69,5 +72,5 @@ in_test() {
   local tag=ops-pkg-node-test:$UBUNTU_SNAPSHOT kvm=()
   build_image "$tag" "$ROOT/test" UBUNTU_INDEX_DIGEST="$UBUNTU_INDEX_DIGEST" UBUNTU_SNAPSHOT="$UBUNTU_SNAPSHOT"
   [[ -w /dev/kvm ]] && kvm=(--device /dev/kvm)
-  docker run --rm ${kvm[@]+"${kvm[@]}"} -v "$ROOT:/src" -w /src "$tag" "$@"
+  docker run --rm "${DOCKER_USER[@]}" ${kvm[@]+"${kvm[@]}"} -v "$ROOT:/src" -w /src "$tag" "$@"
 }

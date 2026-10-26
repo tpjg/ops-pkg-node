@@ -15,9 +15,9 @@ check_sha256 "$WORK/download/$host_node.tar.xz" \
   "$(awk -v f="$host_node.tar.xz" '$2 == f { print $1 }' "$WORK/download/node-v$NODE_VERSION-SHASUMS256.txt")"
 # Container-local, not under the bind mount: the tarball has symlinks, which some bind mounts
 # (colima's virtiofs) cannot hold.
-mkdir -p /opt/host-node
-tar -xJf "$WORK/download/$host_node.tar.xz" -C /opt/host-node --strip-components=1
-export PATH=/opt/host-node/bin:$PATH
+mkdir -p /tmp/host-node
+tar -xJf "$WORK/download/$host_node.tar.xz" -C /tmp/host-node --strip-components=1
+export PATH=/tmp/host-node/bin:$PATH
 qemu-system-x86_64 --version | head -1
 
 [[ -f $DIST/$PKG_FILE ]] || die "no $DIST/$PKG_FILE; run 'just build $ARCH'"
